@@ -12,6 +12,7 @@ if (CMAKE_SYSTEM MATCHES "Windows")
 
     add_definitions(-DPA_WDMKS_NO_KSGUID_LIB)
     add_subdirectory(deps/portaudio)
+    set(PA_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/deps/portaudio/include/)
 
 else()
     # we are on linux/unix/apple use configure script

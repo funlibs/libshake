@@ -1,10 +1,14 @@
 language: c
-
-sudo: false
+cache: apt
+sudo: true
 
 os:
     - linux
     - osx
+
+before_install:
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get -qq update; fi
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -y libjack-dev libasound2-dev; fi
 
 compiler:
     - gcc
@@ -12,4 +16,4 @@ compiler:
 
 script: 
     - ./configure
-    - cd build && make && make test ARGS=--output-on-failure
+    - cd build && make
