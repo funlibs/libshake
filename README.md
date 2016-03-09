@@ -8,9 +8,15 @@ Thin wrapper around the PortAudio library (http://www.portaudio.com/).
 
 Build
 -----
-SNDO is build using CMake for all platforms.
+First init Git submodules:
+```sh
+git submodule init
+git submodule update
+```
 
-You can also use the provided configure script:
+SNDO is build with CMake for all platforms.
+
+You can also use the fake configure script provided to set it up on unix:
 ```sh
 $ ./configure
 $ cd build && make all

@@ -25,7 +25,7 @@ rm -rf build
 mkdir build && cd build && cmake ..
 
 echo
-echo -n "You can now run \"make\"."
+echo -n "You can now run \"make && make test\"."
 echo " Note that there is no \"install target\""
 echo 
 echo "Run \"make sndo_doc\" to generate the doc in the \"build/doc/\" directory."
