@@ -12,4 +12,4 @@ compiler:
 
 script: 
     - ./configure
-    - cd build && make
+    - cd build && make && make test ARGS=--output-on-failure
