@@ -1,0 +1,15 @@
+language: c
+
+sudo: false
+
+os:
+    - linux
+    - osx
+
+compiler:
+    - gcc
+    - clang
+
+script: 
+    - ./configure
+    - cd build && make

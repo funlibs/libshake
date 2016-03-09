@@ -1,0 +1,3 @@
+[submodule "deps/portaudio"]
+	path = deps/portaudio
+	url = https://github.com/ssbx/portaudio.git
