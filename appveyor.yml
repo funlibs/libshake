@@ -6,8 +6,9 @@ platform: x64
 configuration: Release
 
 before_build:
-    - echo Running cmake...
     - cd c:\projects\sndo
+    - git submodule init
+    - git submodule update
     - cmake -G "Visual Studio 14 2015 Win64"
 
 build:
