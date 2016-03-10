@@ -38,7 +38,7 @@ else()
 
     include (ExternalProject)
     ExternalProject_Add(ext_portaudio
-        SOURCE_DIR          ${CMAKE_SOURCE_DIR}/deps/portaudio
+        SOURCE_DIR          ${CMAKE_CURRENT_SOURCE_DIR}/deps/portaudio
         PREFIX              ${CMAKE_BINARY_DIR}/portaudio
         CONFIGURE_COMMAND   <SOURCE_DIR>/configure
         BUILD_COMMAND       make
