@@ -4,7 +4,7 @@
 int main(int argc, char* argv[])
 {
     sndoInit(argv[1]);
-    sleep(10);
+    sleep(3);
     sndoTerminate();
 
 }

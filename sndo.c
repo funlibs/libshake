@@ -5,13 +5,15 @@
 #include <string.h>
 
 
-typedef struct
-{
+typedef struct {
+
     char*       waveData;
     WAVE_INFO   waveInfo;
     int         position;
     int         bytesPerSample;
+
 } StreamState;
+
 
 StreamState* state;
 PaStream*   stream;
@@ -36,8 +38,10 @@ int sndoCallback(
         // read end of wave buffer and go to the begining
         int readEnd = state->waveInfo.dataSize - state->position;
         memcpy(output, &state->waveData[state->position], readEnd);
+
         state->position = 0;
         mustRead = mustRead - readEnd;
+
     }
 
     memcpy(output, &state->waveData[state->position], mustRead);
@@ -48,34 +52,45 @@ int sndoCallback(
 
 }
 
+
 int sndoInit(char* fileName)
 {
+
     state = (StreamState *) malloc(sizeof(StreamState));
 
     state->waveData = waveLoad(fileName, &state->waveInfo);
     if (!state->waveData) {
+
         printf("error opening file\n");
         return 1;
+
     }
+
     state->position = 0;
     state->bytesPerSample = state->waveInfo.wBitsPerSample / 8;
 
+
     Pa_Initialize();
 
+
     PaStreamParameters outputParameters;
+
     outputParameters.device = Pa_GetDefaultOutputDevice();
     outputParameters.channelCount = state->waveInfo.nChannels;
     outputParameters.suggestedLatency = 0.2;
     outputParameters.hostApiSpecificStreamInfo = 0;
+
     if (state->waveInfo.wBitsPerSample == 8)
-        outputParameters.sampleFormat = paInt8;
+        outputParameters.sampleFormat = paUInt8;
+
     else if (state->waveInfo.wBitsPerSample == 16)
         outputParameters.sampleFormat = paInt16;
+
     else if (state->waveInfo.wBitsPerSample == 32)
         outputParameters.sampleFormat = paInt32;
 
 
-    PaError     error;
+    PaError error;
 
     error = Pa_OpenStream(&stream,
             0,                              // no input
@@ -86,15 +101,15 @@ int sndoInit(char* fileName)
             sndoCallback,  
             state); 
 
-    /* if we can't open it, then bail out */
-    if (error)
-    {
+    if (error) {
+
         printf("error opening output, error code = %i\n", error);
         Pa_Terminate();
         return 1;
+
     }
 
-    /* when we start the stream, the callback starts getting called */
+
     Pa_StartStream(stream);
 
     return 0;
