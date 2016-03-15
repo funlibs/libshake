@@ -4,4 +4,7 @@
 #include "portaudio.h"
 #include "wave.h"
 
+int sndoInit(char* fileName);
+void sndoTerminate();
+
 #endif

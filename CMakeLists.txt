@@ -65,7 +65,8 @@ include_directories (
     ${PA_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/deps/libwave)
 add_library (sndo sndo.c sndo.h)
-add_dependencies (sndo portaudio)
+target_link_libraries(sndo portaudio wave ${EXTRA_LIBS})
+add_dependencies (sndo portaudio wave)
 
 
 # tests
@@ -73,16 +74,8 @@ add_executable (sndo_test
     sndo_test.c
     sndo.c
     sndo.h)
-target_link_libraries(sndo_test portaudio ${EXTRA_LIBS})
+target_link_libraries(sndo_test sndo)
 add_dependencies(sndo_test sndo)
-
-add_executable (sndo_test_wave
-    sndo_test_wave.c)
-target_link_libraries(sndo_test_wave portaudio wave ${EXTRA_LIBS})
-add_dependencies(sndo_test_wave wave portaudio)
-
-enable_testing()
-add_test (NAME SineWaveOutput   COMMAND sndo_test)
 
 
 # doc
