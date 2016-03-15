@@ -60,15 +60,11 @@ endif(CMAKE_SYSTEM MATCHES "Windows")
 
 
 # build SNDO
-message(INFO "current dir ${CMAKE_CURRENT_SOURCE_DIR}")
-message(INFO "portaudio dir ${portaudio}")
-
 include_directories (
     . 
     ${PA_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/deps/libwave)
 add_library (sndo sndo.c sndo.h)
-message(INFO "portaudio ${portaudio}")
 target_link_libraries(sndo portaudio wave ${EXTRA_LIBS})
 add_dependencies (sndo portaudio ext_portaudio wave)
 
