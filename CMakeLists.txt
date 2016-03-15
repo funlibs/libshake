@@ -2,6 +2,9 @@ cmake_minimum_required (VERSION 2.6)
 project (SNDO)
 
 
+# build libwave
+add_subdirectory(deps/libwave)
+
 
 # build PortAudio
 set (EXTRA_LIBS "")
@@ -57,7 +60,10 @@ endif(CMAKE_SYSTEM MATCHES "Windows")
 
 
 # build SNDO
-include_directories (. ${PA_INCLUDE_DIR})
+include_directories (
+    . 
+    ${PA_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/deps/libwave)
 add_library (sndo sndo.c sndo.h)
 add_dependencies (sndo portaudio)
 
