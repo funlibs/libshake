@@ -76,6 +76,11 @@ add_executable (sndo_test
 target_link_libraries(sndo_test portaudio ${EXTRA_LIBS})
 add_dependencies(sndo_test sndo)
 
+add_executable (sndo_test_wave
+    sndo_test_wave.c)
+target_link_libraries(sndo_test_wave portaudio wave ${EXTRA_LIBS})
+add_dependencies(sndo_test_wave wave portaudio)
+
 enable_testing()
 add_test (NAME SineWaveOutput   COMMAND sndo_test)
 

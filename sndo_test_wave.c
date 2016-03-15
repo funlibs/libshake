@@ -1,29 +1,17 @@
-#include "sndfile.h"
+#include "wave.h"
 #include "portaudio.h"
 #include <stdlib.h>
 #include <stdio.h>
 
-
-/* the filename is defined here because this is just a demo */
-#define FILE_NAME "test.wav"
-
-
-/*
- * Data structure to pass to callback
- * includes the sound file, info about the sound file, and a position
- * cursor (where we are in the sound file)
- */
-struct OurData
+typedef struct
 {
-    SNDFILE *sndFile;
-    SF_INFO sfInfo;
-    int position;
-};
+    char*       waveData;
+    WAVE_INFO   waveInfo;
+    int         position;
+    int         bytesPerSample;
+} StreamState;
 
 
-/*
- * Callback function for audio output
- */
 int Callback(
         const void                      *input,
         void                            *output,
@@ -32,94 +20,66 @@ int Callback(
         PaStreamCallbackFlags           statusFlags,
         void                            *userData)
 {
-    OurData *data = (OurData *)userData; /* we passed a data structure
-                                            into the callback so we have something to work with */
-    int *cursor; /* current pointer into the output  */
-    int *out = (int *)output;
-    int thisSize = frameCount;
-    int thisRead;
+    StreamState *state = (StreamState *) userData;
 
-    cursor = out; /* set the output cursor to the beginning */
-    while (thisSize > 0)
-    {
-        /* seek to our current file position */
-        sf_seek(data->sndFile, data->position, SEEK_SET);
+    int mustRead = state->waveInfo.nChannels * state->bytesPerSample * frameCount;
 
-        /* are we going to read past the end of the file?*/
-        if (thisSize > (data->sfInfo.frames - data->position))
-        {
-            /*if we are, only read to the end of the file*/
-            thisRead = data->sfInfo.frames - data->position;
-            /* and then loop to the beginning of the file */
-            data->position = 0;
-        }
-        else
-        {
-            /* otherwise, we'll just fill up the rest of the output buffer */
-            thisRead = thisSize;
-            /* and increment the file position */
-            data->position += thisRead;
-        }
+    if ((state->position + mustRead) > state->waveInfo.dataSize) {
 
-        /* since our output format and channel interleaving is the same as
-           sf_readf_int's requirements */
-        /* we'll just read straight into the output buffer */
-        sf_readf_int(data->sndFile, cursor, thisRead);
-        /* increment the output cursor*/
-        cursor += thisRead;
-        /* decrement the number of samples left to process */
-        thisSize -= thisRead;
+        // read end of wave buffer and go to the begining
+        int readEnd = state->waveInfo.dataSize - state->position;
+        memcpy(output, &state->waveData[state->position], readEnd);
+        state->position = 0;
+        mustRead = mustRead - readEnd;
     }
+
+    memcpy(output, &state->waveData[state->position], mustRead);
+
+    state->position += mustRead;
 
     return paContinue;
 }
 
 
-int main()
+
+int main(int argc, char* argv[])
 {
-    OurData *data = (OurData *)malloc(sizeof(OurData));
-    PaStream *stream;
-    PaError error;
-    PaStreamParameters outputParameters;
+    StreamState*    state = (StreamState *)malloc(sizeof(StreamState));
 
-    /* initialize our data structure */
-    data->position = 0;
-    data->sfInfo.format = 0;
-    /* try to open the file */
-    data->sndFile = sf_open(FILE_NAME, SFM_READ, &data->sfInfo);
-
-    if (!data->sndFile)
-    {
+    state->waveData = waveOpen(argv[1], &state->waveInfo);
+    if (!state->waveData) {
         printf("error opening file\n");
         return 1;
     }
+    state->position = 0;
+    state->bytesPerSample = state->waveInfo.wBitsPerSample / 8;
 
-    /* start portaudio */
     Pa_Initialize();
 
-    /* set the output parameters */
-    outputParameters.device = Pa_GetDefaultOutputDevice(); /* use the
-                                                              default device */
-    outputParameters.channelCount = data->sfInfo.channels; /* use the
-                                                              same number of channels as our sound file */
-    outputParameters.sampleFormat = paInt32; /* 32bit int format */
-    outputParameters.suggestedLatency = 0.2; /* 200 ms ought to satisfy
-                                                even the worst sound card */
-    outputParameters.hostApiSpecificStreamInfo = 0; /* no api specific data */
+    PaStreamParameters outputParameters;
+    outputParameters.device = Pa_GetDefaultOutputDevice();
+    outputParameters.channelCount = state->waveInfo.nChannels;
+    outputParameters.suggestedLatency = 0.2;
+    outputParameters.hostApiSpecificStreamInfo = 0;
+    if (state->waveInfo.wBitsPerSample == 8)
+        outputParameters.sampleFormat = paInt8;
+    else if (state->waveInfo.wBitsPerSample == 16)
+        outputParameters.sampleFormat = paInt16;
+    else if (state->waveInfo.wBitsPerSample == 32)
+        outputParameters.sampleFormat = paInt32;
 
-    /* try to open the output */
-    error = Pa_OpenStream(&stream,  /* stream is a 'token' that we need
-                                       to save for future portaudio calls */
-            0,  /* no input */
+
+    PaStream*   stream;
+    PaError     error;
+
+    error = Pa_OpenStream(&stream,
+            0,                              // no input
             &outputParameters,
-            data->sfInfo.samplerate,  /* use the same
-                                         sample rate as the sound file */
-            paFramesPerBufferUnspecified,  /* let
-                                              portaudio choose the buffersize */
-            paNoFlag,  /* no special modes (clip off, dither off) */
-            Callback,  /* callback function defined above */
-            data ); /* pass in our data structure so the
-                       callback knows what's up */
+            state->waveInfo.nSamplesPerSec,  // sample rate 
+            paFramesPerBufferUnspecified,
+            paNoFlag,  // no special modes (clip off, dither off)
+            Callback,  
+            state ); 
 
     /* if we can't open it, then bail out */
     if (error)
@@ -131,10 +91,9 @@ int main()
 
     /* when we start the stream, the callback starts getting called */
     Pa_StartStream(stream);
-    Pa_Sleep(2000); /* pause for 2 seconds (2000ms) so we can hear a bit
-                       of the output */
-    Pa_StopStream(stream); // stop the stream
-    Pa_Terminate(); // and shut down portaudio
+    Pa_Sleep(300000);
+    Pa_StopStream(stream);
+    Pa_Terminate();
     return 0;
 }
 
