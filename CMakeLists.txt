@@ -60,6 +60,7 @@ endif(CMAKE_SYSTEM MATCHES "Windows")
 
 
 # build SNDO
+message(INFO "current dir ${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories (
     . 
     ${PA_INCLUDE_DIR}
