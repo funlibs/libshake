@@ -52,7 +52,7 @@ int sndoInit(char* fileName)
 {
     state = (StreamState *) malloc(sizeof(StreamState));
 
-    state->waveData = waveOpen(fileName, &state->waveInfo);
+    state->waveData = waveLoad(fileName, &state->waveInfo);
     if (!state->waveData) {
         printf("error opening file\n");
         return 1;
