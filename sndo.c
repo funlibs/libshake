@@ -30,6 +30,10 @@ int sndoCallback(
 
     StreamState *state = (StreamState *) streamState;
 
+    // no enought data to continue
+    if (frameCount > state->waveInfo.dataSize)
+        return paAbort;
+
     int mustRead =
         state->waveInfo.nChannels * state->bytesPerSample * frameCount;
 
@@ -88,7 +92,6 @@ int sndoInit(char* fileName)
 
     else if (state->waveInfo.wBitsPerSample == 32)
         outputParameters.sampleFormat = paInt32;
-
 
     PaError error;
 
