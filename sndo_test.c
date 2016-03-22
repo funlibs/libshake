@@ -1,25 +1,30 @@
 #include "sndo.h"
+#ifdef WIN32
+#include <windows.h>
+void doSleep(int duration) { Sleep(duration * 1000); }
+#else
 #include <unistd.h>
-
+void doSleep(int duration) { sleep(duration); }
+#endif
 int main(int argc, char* argv[])
 {
 
     sndoInit();
     int soundId = sndoLoad("test.wav");
     sndoPlay(soundId);
-    sleep(3);
+    doSleep(3);
     sndoPlay(soundId);
-    sleep(2);
+    doSleep(2);
     sndoPlay(soundId);
-    sleep(1);
+    doSleep(1);
     sndoPlay(soundId);
-    sleep(2);
+    doSleep(2);
     sndoPlay(soundId);
-    sleep(3);
+    doSleep(3);
     sndoPlay(soundId);
-    sleep(1);
+    doSleep(1);
     sndoPlay(soundId);
-    sleep(2);
+    doSleep(2);
 
     sndoTerminate();
 

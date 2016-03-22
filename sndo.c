@@ -4,7 +4,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+#ifdef WIN32
+#include <windows.h>
+static HANDLE SNDO_BufferMutex;
+void sndoLock() { WaitForSingleObject(SNDO_BufferMutex, INFINITE); }
+void sndoUnlock() { ReleaseMutex(SNDO_BufferMutex); }
+#else
 #include <pthread.h>
+static pthread_mutex_t  SNDO_BufferMutex = PTHREAD_MUTEX_INITIALIZER; 
+void sndoLock() { pthread_mutex_lock(&SNDO_BufferMutex); }
+void sndoUnlock() { pthread_mutex_unlock(&SNDO_BufferMutex); }
+#endif
 
 #define BUFFER_SIZE     1000000
 #define SAMPLE_BITS     16
@@ -34,10 +45,14 @@ Sound*                  SNDO_Sounds;
 PaStream*               SNDO_Stream;
 int16_t*                SNDO_Buffer;
 int                     SNDO_BufferPosition;
-static pthread_mutex_t  SNDO_BufferMutex = PTHREAD_MUTEX_INITIALIZER; 
 
 int sndoInit(char* fileName)
 {
+
+#ifdef WIN32
+    SNDO_BufferMutex = CreateMutex(NULL, FALSE, NULL);
+#endif
+
 
     SNDO_Buffer = calloc(BUFFER_SIZE, sizeof(int16_t));
     SNDO_BufferPosition = 0;
@@ -114,7 +129,7 @@ int sndoLoad(char* fileName)
 // main thread
 void sndoPlay(int soundId) {
 
-    pthread_mutex_lock(&SNDO_BufferMutex); // LOCK BUFFER
+    sndoLock(); // LOCK BUFFER
 
     int dataPos     = 0;
     int buffPos     = SNDO_BufferPosition;
@@ -138,7 +153,7 @@ void sndoPlay(int soundId) {
             SNDO_Sounds[soundId].data, dataPos,
             SNDO_Buffer,         buffPos, mustRead);
 
-    pthread_mutex_unlock(&SNDO_BufferMutex); // UNLOCK BUFFER
+    sndoUnlock(); // UNLOCK BUFFER
 
 }
 
@@ -156,7 +171,7 @@ int sndoCallback(
     int mustRead = 2 * frameCount; // nchannels * framecount
 
 
-    pthread_mutex_lock(&SNDO_BufferMutex);  // LOCK BUFFER
+    sndoLock();  // LOCK BUFFER
 
     if ((SNDO_BufferPosition + mustRead) > BUFFER_SIZE) {
 
@@ -175,7 +190,7 @@ int sndoCallback(
 
     SNDO_BufferPosition += mustRead;
 
-    pthread_mutex_unlock(&SNDO_BufferMutex); // UNLOCK SNDO_Buffer
+    sndoUnlock(); // UNLOCK SNDO_Buffer
 
     return paContinue;
 
