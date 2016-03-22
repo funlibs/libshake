@@ -4,7 +4,7 @@ SNDO
 [![Build Status](https://travis-ci.org/ssbx/sndo.svg?branch=master)](https://travis-ci.org/ssbx/sndo)
 [![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/github/ssbx/sndo?branch=master&svg=true)](https://ci.appveyor.com/project/ssbx/sndo)
 
-Thin wrapper around the PortAudio library (http://www.portaudio.com/).
+Very limited mixer. Only load wav files with 16 bits/sample at 44100hz for 2 channels.
 
 Build
 -----
