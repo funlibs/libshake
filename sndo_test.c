@@ -5,7 +5,7 @@ int main(int argc, char* argv[])
 {
 
     sndoInit();
-    int soundId = sndoLoad("../tes.wav");
+    int soundId = sndoLoad("test.wav");
     sndoPlay(soundId);
     sleep(3);
     sndoPlay(soundId);
