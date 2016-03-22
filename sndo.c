@@ -46,7 +46,7 @@ PaStream*               SNDO_Stream;
 int16_t*                SNDO_Buffer;
 int                     SNDO_BufferPosition;
 
-int sndoInit(char* fileName)
+int sndoInit(float suggestedLatency)
 {
 
 #ifdef WIN32
@@ -67,7 +67,7 @@ int sndoInit(char* fileName)
     PaStreamParameters outputParameters;
     outputParameters.device = Pa_GetDefaultOutputDevice();
     outputParameters.channelCount = 2;
-    outputParameters.suggestedLatency = 0.2;
+    outputParameters.suggestedLatency = suggestedLatency;
     outputParameters.hostApiSpecificStreamInfo = 0;
     outputParameters.sampleFormat = SAMPLE_FORMAT;
 

@@ -9,7 +9,7 @@ void doSleep(int duration) { sleep(duration); }
 int main(int argc, char* argv[])
 {
 
-    sndoInit();
+    sndoInit(0.2);
     int soundId = sndoLoad("test.wav");
     sndoPlay(soundId);
     doSleep(3);
