@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.6)
-project (SNDO)
+project (SHAKE)
 
 
 # build libwave
@@ -59,23 +59,23 @@ endif(CMAKE_SYSTEM MATCHES "Windows")
 
 
 
-# build SNDO
+# build SHAKE
 include_directories (
     . 
     ${PA_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/deps/libwave)
-add_library (sndo sndo.c sndo.h)
-target_link_libraries(sndo portaudio wave ${EXTRA_LIBS})
-add_dependencies (sndo portaudio ext_portaudio wave)
+add_library (shake shake.c shake.h)
+target_link_libraries(shake portaudio wave ${EXTRA_LIBS})
+add_dependencies (shake portaudio ext_portaudio wave)
 
 
 # tests
-add_executable (sndo_test
-    sndo_test.c
-    sndo.c
-    sndo.h)
-target_link_libraries(sndo_test sndo)
-add_dependencies(sndo_test sndo)
+add_executable (shake_test
+    shake_test.c
+    shake.c
+    shake.h)
+target_link_libraries(shake_test shake)
+add_dependencies(shake_test shake)
 
 
 # doc
@@ -87,7 +87,7 @@ if (DOXYGEN_FOUND)
     ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
     ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
 
-  add_custom_target (sndo_doc
+  add_custom_target (shake_doc
     ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
     WORKING DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generating API documentation with Doxygen" VERBATIM)

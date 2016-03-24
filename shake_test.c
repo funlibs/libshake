@@ -1,4 +1,4 @@
-#include "sndo.h"
+#include "shake.h"
 #ifdef WIN32
 #include <windows.h>
 void doSleep(int duration) { Sleep(duration * 1000); }
@@ -9,23 +9,23 @@ void doSleep(int duration) { sleep(duration); }
 int main(int argc, char* argv[])
 {
 
-    sndoInit(0.2);
-    int soundId = sndoLoad("test.wav");
-    sndoPlay(soundId);
+    shakeInit(0.2);
+    int soundId = shakeLoad("test.wav");
+    shakePlay(soundId);
     doSleep(3);
-    sndoPlay(soundId);
+    shakePlay(soundId);
     doSleep(2);
-    sndoPlay(soundId);
+    shakePlay(soundId);
     doSleep(1);
-    sndoPlay(soundId);
+    shakePlay(soundId);
     doSleep(2);
-    sndoPlay(soundId);
+    shakePlay(soundId);
     doSleep(3);
-    sndoPlay(soundId);
+    shakePlay(soundId);
     doSleep(1);
-    sndoPlay(soundId);
+    shakePlay(soundId);
     doSleep(2);
 
-    sndoTerminate();
+    shakeTerminate();
 
 }

@@ -1,4 +1,4 @@
-#include "sndo.h"
+#include "shake.h"
 #include "wave.h"
 #include "portaudio.h"
 #include <stdlib.h>
@@ -7,14 +7,14 @@
 
 #ifdef WIN32
 #include <windows.h>
-static HANDLE SNDO_BufferMutex;
-void sndoLock() { WaitForSingleObject(SNDO_BufferMutex, INFINITE); }
-void sndoUnlock() { ReleaseMutex(SNDO_BufferMutex); }
+static HANDLE SHAKE_BufferMutex;
+void shakeLock() { WaitForSingleObject(SHAKE_BufferMutex, INFINITE); }
+void shakeUnlock() { ReleaseMutex(SHAKE_BufferMutex); }
 #else
 #include <pthread.h>
-static pthread_mutex_t  SNDO_BufferMutex = PTHREAD_MUTEX_INITIALIZER; 
-void sndoLock() { pthread_mutex_lock(&SNDO_BufferMutex); }
-void sndoUnlock() { pthread_mutex_unlock(&SNDO_BufferMutex); }
+static pthread_mutex_t  SHAKE_BufferMutex = PTHREAD_MUTEX_INITIALIZER; 
+void shakeLock() { pthread_mutex_lock(&SHAKE_BufferMutex); }
+void shakeUnlock() { pthread_mutex_unlock(&SHAKE_BufferMutex); }
 #endif
 
 #define BUFFER_SIZE     1000000
@@ -23,14 +23,14 @@ void sndoUnlock() { pthread_mutex_unlock(&SNDO_BufferMutex); }
 #define SAMPLE_TYPE     int16_t
 #define SAMPLE_RATE     44100
 
-int sndoCallback(
+int shakeCallback(
         const void                      *input,
         void                            *output,
         unsigned long                    frameCount,
         const PaStreamCallbackTimeInfo*  paTimeInfo,
         PaStreamCallbackFlags            statusFlags,
         void                            *noUserData);
-void sndoMixAverage(
+void shakeMixAverage(
         int16_t*    sample, 
         int         sampleIndex,
         int16_t*    output,
@@ -40,25 +40,25 @@ void sndoMixAverage(
 typedef struct sound_t {int16_t* data; int size;} Sound;
 
 // GLOBAL_Variables 
-int                     SNDO_LoadedSounds;
-Sound*                  SNDO_Sounds;
-PaStream*               SNDO_Stream;
-int16_t*                SNDO_Buffer;
-int                     SNDO_BufferPosition;
+int                     SHAKE_LoadedSounds;
+Sound*                  SHAKE_Sounds;
+PaStream*               SHAKE_Stream;
+int16_t*                SHAKE_Buffer;
+int                     SHAKE_BufferPosition;
 
-int sndoInit(float suggestedLatency)
+int shakeInit(float suggestedLatency)
 {
 
 #ifdef WIN32
-    SNDO_BufferMutex = CreateMutex(NULL, FALSE, NULL);
+    SHAKE_BufferMutex = CreateMutex(NULL, FALSE, NULL);
 #endif
 
 
-    SNDO_Buffer = calloc(BUFFER_SIZE, sizeof(int16_t));
-    SNDO_BufferPosition = 0;
+    SHAKE_Buffer = calloc(BUFFER_SIZE, sizeof(int16_t));
+    SHAKE_BufferPosition = 0;
 
-    SNDO_Sounds = malloc(10 * sizeof(Sound));
-    SNDO_LoadedSounds = 0;
+    SHAKE_Sounds = malloc(10 * sizeof(Sound));
+    SHAKE_LoadedSounds = 0;
 
 
     Pa_Initialize();
@@ -72,9 +72,9 @@ int sndoInit(float suggestedLatency)
     outputParameters.sampleFormat = SAMPLE_FORMAT;
 
 
-    PaError error = Pa_OpenStream(&SNDO_Stream, 0, &outputParameters,
+    PaError error = Pa_OpenStream(&SHAKE_Stream, 0, &outputParameters,
             SAMPLE_RATE, paFramesPerBufferUnspecified, paNoFlag,
-            sndoCallback, NULL);
+            shakeCallback, NULL);
 
     if (error) {
 
@@ -84,13 +84,13 @@ int sndoInit(float suggestedLatency)
 
     }
 
-    Pa_StartStream(SNDO_Stream);
+    Pa_StartStream(SHAKE_Stream);
 
     return 0;
 
 }
 
-int sndoLoad(char* fileName)
+int shakeLoad(char* fileName)
 {
 
     WAVE_INFO info;
@@ -117,9 +117,9 @@ int sndoLoad(char* fileName)
     s.size = info.dataSize / 2;
 
 
-    int soundId = SNDO_LoadedSounds;
-    SNDO_Sounds[soundId] = s;
-    SNDO_LoadedSounds += 1;
+    int soundId = SHAKE_LoadedSounds;
+    SHAKE_Sounds[soundId] = s;
+    SHAKE_LoadedSounds += 1;
 
     return soundId;
 
@@ -127,21 +127,21 @@ int sndoLoad(char* fileName)
 
 
 // main thread
-void sndoPlay(int soundId) {
+void shakePlay(int soundId) {
 
-    sndoLock(); // LOCK BUFFER
+    shakeLock(); // LOCK BUFFER
 
     int dataPos     = 0;
-    int buffPos     = SNDO_BufferPosition;
+    int buffPos     = SHAKE_BufferPosition;
 
-    int mustRead    = SNDO_Sounds[soundId].size;
-    int samplesLeft = BUFFER_SIZE - SNDO_BufferPosition;
+    int mustRead    = SHAKE_Sounds[soundId].size;
+    int samplesLeft = BUFFER_SIZE - SHAKE_BufferPosition;
 
     if (samplesLeft < mustRead) {
 
-        sndoMixAverage(
-                SNDO_Sounds[soundId].data, dataPos,
-                SNDO_Buffer,         buffPos, samplesLeft);
+        shakeMixAverage(
+                SHAKE_Sounds[soundId].data, dataPos,
+                SHAKE_Buffer,         buffPos, samplesLeft);
 
         mustRead = mustRead - samplesLeft;
         dataPos  = samplesLeft;
@@ -149,17 +149,17 @@ void sndoPlay(int soundId) {
 
     }
 
-    sndoMixAverage(
-            SNDO_Sounds[soundId].data, dataPos,
-            SNDO_Buffer,         buffPos, mustRead);
+    shakeMixAverage(
+            SHAKE_Sounds[soundId].data, dataPos,
+            SHAKE_Buffer,         buffPos, mustRead);
 
-    sndoUnlock(); // UNLOCK BUFFER
+    shakeUnlock(); // UNLOCK BUFFER
 
 }
 
 
 // portaudio thread
-int sndoCallback(
+int shakeCallback(
         const void                      *input,
         void                            *output,
         unsigned long                    frameCount,
@@ -171,26 +171,26 @@ int sndoCallback(
     int mustRead = 2 * frameCount; // nchannels * framecount
 
 
-    sndoLock();  // LOCK BUFFER
+    shakeLock();  // LOCK BUFFER
 
-    if ((SNDO_BufferPosition + mustRead) > BUFFER_SIZE) {
+    if ((SHAKE_BufferPosition + mustRead) > BUFFER_SIZE) {
 
         // read end of wave buffer and go to the begining
-        int readEnd = BUFFER_SIZE - SNDO_BufferPosition;
-        memcpy(output, &SNDO_Buffer[SNDO_BufferPosition], readEnd * 2);
-        memset(&SNDO_Buffer[SNDO_BufferPosition], 0,      readEnd * 2);
+        int readEnd = BUFFER_SIZE - SHAKE_BufferPosition;
+        memcpy(output, &SHAKE_Buffer[SHAKE_BufferPosition], readEnd * 2);
+        memset(&SHAKE_Buffer[SHAKE_BufferPosition], 0,      readEnd * 2);
 
-        SNDO_BufferPosition = 0;
+        SHAKE_BufferPosition = 0;
         mustRead = mustRead - readEnd;
 
     }
 
-    memcpy(output, &SNDO_Buffer[SNDO_BufferPosition], mustRead * 2);
-    memset(&SNDO_Buffer[SNDO_BufferPosition], 0,      mustRead * 2);
+    memcpy(output, &SHAKE_Buffer[SHAKE_BufferPosition], mustRead * 2);
+    memset(&SHAKE_Buffer[SHAKE_BufferPosition], 0,      mustRead * 2);
 
-    SNDO_BufferPosition += mustRead;
+    SHAKE_BufferPosition += mustRead;
 
-    sndoUnlock(); // UNLOCK SNDO_Buffer
+    shakeUnlock(); // UNLOCK SHAKE_Buffer
 
     return paContinue;
 
@@ -201,7 +201,7 @@ int sndoCallback(
  * @briev mix sounds
  * Very basic with hard clipping.
  */
-void sndoMixAverage(
+void shakeMixAverage(
         int16_t*    sample, 
         int         sampleIndex,
         int16_t*    output,
@@ -236,18 +236,18 @@ void sndoMixAverage(
 
 
 
-void sndoTerminate()
+void shakeTerminate()
 {
 
-    Pa_StopStream(SNDO_Stream);
+    Pa_StopStream(SHAKE_Stream);
     Pa_Terminate();
 
     int i;
-    for (i = 0; i < SNDO_LoadedSounds; i++)
-        free(SNDO_Sounds[i].data);
+    for (i = 0; i < SHAKE_LoadedSounds; i++)
+        free(SHAKE_Sounds[i].data);
 
-    free(SNDO_Sounds);
-    free(SNDO_Buffer);
+    free(SHAKE_Sounds);
+    free(SHAKE_Buffer);
 
 }
 

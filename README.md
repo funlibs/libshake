@@ -1,8 +1,7 @@
-SNDO
-====
-
-[![Build Status](https://travis-ci.org/ssbx/sndo.svg?branch=master)](https://travis-ci.org/ssbx/sndo)
-[![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/github/ssbx/sndo?branch=master&svg=true)](https://ci.appveyor.com/project/ssbx/sndo)
+SHAKE
+=====
+[![Build Status](https://travis-ci.org/ssbx/shake.svg?branch=master)](https://travis-ci.org/ssbx/shake)
+[![Build status](https://ci.appveyor.com/api/projects/status/syp9egks836gv6hw/branch/master?svg=true)](https://ci.appveyor.com/project/ssbx/shake/branch/master)
 
 Very limited mixer. Only load wav files with 16 bits/sample at 44100hz for 2 channels.
 
@@ -14,7 +13,7 @@ git submodule init
 git submodule update
 ```
 
-SNDO is build with CMake for all platforms.
+SHAKE is build with CMake for all platforms.
 
 You can also use the fake configure script provided to set it up on unix:
 ```sh
