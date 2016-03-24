@@ -70,7 +70,7 @@ if (CMAKE_SYSTEM MATCHES "Windows")
     add_dependencies (shake portaudio_static wave)
 else()
     target_link_libraries(shake portaudio wave ${EXTRA_LIBS})
-    add_dependencies (shake portaudio wave)
+    add_dependencies (shake portaudio ext_portaudio wave)
 endif()
 
 
