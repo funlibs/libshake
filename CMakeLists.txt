@@ -65,8 +65,13 @@ include_directories (
     ${PA_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/deps/libwave)
 add_library (shake shake.c shake.h)
-target_link_libraries(shake portaudio wave ${EXTRA_LIBS})
-add_dependencies (shake portaudio ext_portaudio wave)
+if (CMAKE_SYSTEM MATCHES "Windows")
+    target_link_libraries(shake portaudio_static wave ${EXTRA_LIBS})
+    add_dependencies (shake portaudio_static wave)
+else()
+    target_link_libraries(shake portaudio wave ${EXTRA_LIBS})
+    add_dependencies (shake portaudio wave)
+endif()
 
 
 # tests
