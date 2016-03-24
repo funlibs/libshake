@@ -2,6 +2,7 @@ LibShake
 ========
 [![Build Status](https://travis-ci.org/ssbx/libshake.svg?branch=master)](https://travis-ci.org/ssbx/libshake)
 [![Build status](https://ci.appveyor.com/api/projects/status/9fd4q1t27bej41ox/branch/master?svg=true)](https://ci.appveyor.com/project/ssbx/libshake/branch/master)
+
 Very limited mixer. Only load wav files with 16 bits/sample at 44100hz for 2 channels.
 
 Build
