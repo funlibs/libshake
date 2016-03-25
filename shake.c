@@ -148,7 +148,7 @@ void shakePlay(int soundId) {
     shakeLock(); // LOCK BUFFER
 
     int dataPos     = 0;
-    int buffPos     = SHAKE_BufferPosition;
+    int buffPos     = SHAKE_BufferPosition; // the next buffer part to read
 
     int mustRead    = SHAKE_Sounds[soundId].size;
     int samplesLeft = BUFFER_SIZE - SHAKE_BufferPosition;
@@ -157,7 +157,7 @@ void shakePlay(int soundId) {
 
         shakeMixAverage(
                 SHAKE_Sounds[soundId].data, dataPos,
-                SHAKE_Buffer,         buffPos, samplesLeft);
+                SHAKE_Buffer, buffPos, samplesLeft);
 
         mustRead = mustRead - samplesLeft;
         dataPos  = samplesLeft;
@@ -167,7 +167,7 @@ void shakePlay(int soundId) {
 
     shakeMixAverage(
             SHAKE_Sounds[soundId].data, dataPos,
-            SHAKE_Buffer,         buffPos, mustRead);
+            SHAKE_Buffer,               buffPos, mustRead);
 
     shakeUnlock(); // UNLOCK BUFFER
 
@@ -214,8 +214,8 @@ int shakeCallback(
 
 
 /*
- * @briev mix sounds
- * Very basic with hard clipping.
+ * @brief mix sounds
+ * Very basic hard clipping.
  */
 void shakeMixAverage(
         int16_t*    sample, 
