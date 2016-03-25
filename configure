@@ -28,6 +28,6 @@ echo
 echo -n "You can now run \"make\"."
 echo " Note that there is no \"install target\""
 echo 
-echo "Run \"make shake_doc\" to generate the doc in the \"build/doc/\" directory."
+echo "Run \"make cargo_doc\" to generate the doc in the \"build/doc/\" directory."
 echo
 
