@@ -75,12 +75,12 @@ endif()
 
 
 # tests
-add_executable (example
-    example.c
+add_executable (shake_example
+    shake_example.c
     shake.c
     shake.h)
-target_link_libraries(example shake)
-add_dependencies(example shake)
+target_link_libraries(shake_example shake)
+add_dependencies(shake_example shake)
 
 
 # doc

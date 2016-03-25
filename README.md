@@ -24,7 +24,7 @@ make
 Demo
 ----
 ```sh
-./build/example
+./build/shake_example
 ```
 
 Doc
