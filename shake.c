@@ -34,7 +34,7 @@ int       SHAKE_LoadedSounds;
 Sound*    SHAKE_Sounds;
 PaStream* SHAKE_Stream;
 int16_t*  SHAKE_Buffer;
-int       SHAKE_BufferPosition;
+int       SHAKE_BufferNextReadPosition;
 
 
 
@@ -73,22 +73,22 @@ int shakeCallback(
 
     shakeLock();  // LOCK BUFFER
 
-    if ((SHAKE_BufferPosition + mustRead) > BUFFER_SIZE) {
+    if ((SHAKE_BufferNextReadPosition + mustRead) > BUFFER_SIZE) {
 
         // read end of wave buffer and go to the begining
-        int readEnd = BUFFER_SIZE - SHAKE_BufferPosition;
-        memcpy(output, &SHAKE_Buffer[SHAKE_BufferPosition], readEnd * 2);
-        memset(&SHAKE_Buffer[SHAKE_BufferPosition], 0,      readEnd * 2);
+        int readEnd = BUFFER_SIZE - SHAKE_BufferNextReadPosition;
+        memcpy(output, &SHAKE_Buffer[SHAKE_BufferNextReadPosition], readEnd * 2);
+        memset(&SHAKE_Buffer[SHAKE_BufferNextReadPosition], 0,      readEnd * 2);
 
-        SHAKE_BufferPosition = 0;
+        SHAKE_BufferNextReadPosition = 0;
         mustRead = mustRead - readEnd;
 
     }
 
-    memcpy(output, &SHAKE_Buffer[SHAKE_BufferPosition], mustRead * 2);
-    memset(&SHAKE_Buffer[SHAKE_BufferPosition], 0,      mustRead * 2);
+    memcpy(output, &SHAKE_Buffer[SHAKE_BufferNextReadPosition], mustRead * 2);
+    memset(&SHAKE_Buffer[SHAKE_BufferNextReadPosition], 0,      mustRead * 2);
 
-    SHAKE_BufferPosition += mustRead;
+    SHAKE_BufferNextReadPosition += mustRead;
 
     shakeUnlock(); // UNLOCK SHAKE_Buffer
 
@@ -104,7 +104,7 @@ int shakeInit(float suggestedLatency)
     shakeInitLock();
 
     SHAKE_Buffer = calloc(BUFFER_SIZE, sizeof(int16_t));
-    SHAKE_BufferPosition = 0;
+    SHAKE_BufferNextReadPosition = 0;
 
     SHAKE_Sounds = malloc(10 * sizeof(Sound));
     SHAKE_LoadedSounds = 0;
@@ -216,10 +216,10 @@ void shakePlay(int soundId) {
     shakeLock(); // LOCK BUFFER
 
     int dataPos     = 0;
-    int buffPos     = SHAKE_BufferPosition; // the next buffer part to read
+    int buffPos     = SHAKE_BufferNextReadPosition;
 
     int mustRead    = SHAKE_Sounds[soundId].size;
-    int samplesLeft = BUFFER_SIZE - SHAKE_BufferPosition;
+    int samplesLeft = BUFFER_SIZE - buffPos;
 
     if (samplesLeft < mustRead) {
 
