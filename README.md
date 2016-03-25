@@ -23,6 +23,7 @@ make
 
 Doc
 ---
+Depends on Doxygen.
 ```sh
 make shake_doc
 ```
