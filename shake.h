@@ -20,6 +20,11 @@
 #ifndef SHAKE_H
 #define SHAKE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
+
 /**
  * @brief Initialize shake
  * @param suggestedLatency PortAudio stream suggested latency
@@ -44,6 +49,11 @@ void shakePlay(int soundId);
  * @brief Terminate shake
  */
 void shakeTerminate();
+
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 
 #endif
 
