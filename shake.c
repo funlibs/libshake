@@ -13,25 +13,14 @@
  * the License for the specific language governing permissions and limitations
  * under the License.
  */
-
 #include "shake.h"
 #include "wave.h"
 #include "portaudio.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-#ifdef WIN32
-#include <windows.h>
-static HANDLE SHAKE_BufferMutex;
-void shakeLock() { WaitForSingleObject(SHAKE_BufferMutex, INFINITE); }
-void shakeUnlock() { ReleaseMutex(SHAKE_BufferMutex); }
-#else
-#include <pthread.h>
-static pthread_mutex_t  SHAKE_BufferMutex = PTHREAD_MUTEX_INITIALIZER; 
-void shakeLock() { pthread_mutex_lock(&SHAKE_BufferMutex); }
-void shakeUnlock() { pthread_mutex_unlock(&SHAKE_BufferMutex); }
-#endif
 
 #define BUFFER_SIZE     1000000
 #define SAMPLE_BITS     16
@@ -39,142 +28,37 @@ void shakeUnlock() { pthread_mutex_unlock(&SHAKE_BufferMutex); }
 #define SAMPLE_TYPE     int16_t
 #define SAMPLE_RATE     44100
 
-int shakeCallback(
-        const void                      *input,
-        void                            *output,
-        unsigned long                    frameCount,
-        const PaStreamCallbackTimeInfo*  paTimeInfo,
-        PaStreamCallbackFlags            statusFlags,
-        void                            *noUserData);
-void shakeMixAverage(
-        int16_t*    sample, 
-        int         sampleIndex,
-        int16_t*    output,
-        int         outputIndex,
-        int         size);
 
 typedef struct sound_t {int16_t* data; int size;} Sound;
+int       SHAKE_LoadedSounds;
+Sound*    SHAKE_Sounds;
+PaStream* SHAKE_Stream;
+int16_t*  SHAKE_Buffer;
+int       SHAKE_BufferPosition;
 
-// GLOBAL_Variables 
-int                     SHAKE_LoadedSounds;
-Sound*                  SHAKE_Sounds;
-PaStream*               SHAKE_Stream;
-int16_t*                SHAKE_Buffer;
-int                     SHAKE_BufferPosition;
 
-int shakeInit(float suggestedLatency)
-{
 
+// portable mutex
 #ifdef WIN32
-    SHAKE_BufferMutex = CreateMutex(NULL, FALSE, NULL);
-#endif
+
+#include <windows.h>
+static HANDLE SHAKE_BufferMutex;
+void shakeInitLock() { SHAKE_BufferMutex = CreateMutex(NULL, FALSE, NULL); }
+void shakeLock() { WaitForSingleObject(SHAKE_BufferMutex, INFINITE); }
+void shakeUnlock() { ReleaseMutex(SHAKE_BufferMutex); }
+
+#else
+
+#include <pthread.h>
+static pthread_mutex_t  SHAKE_BufferMutex = PTHREAD_MUTEX_INITIALIZER; 
+void shakeInitLock() {}
+void shakeLock() { pthread_mutex_lock(&SHAKE_BufferMutex); }
+void shakeUnlock() { pthread_mutex_unlock(&SHAKE_BufferMutex); }
+
+#endif // WIN32
 
 
-    SHAKE_Buffer = calloc(BUFFER_SIZE, sizeof(int16_t));
-    SHAKE_BufferPosition = 0;
-
-    SHAKE_Sounds = malloc(10 * sizeof(Sound));
-    SHAKE_LoadedSounds = 0;
-
-
-    Pa_Initialize();
-
-
-    PaStreamParameters outputParameters;
-    outputParameters.device = Pa_GetDefaultOutputDevice();
-    outputParameters.channelCount = 2;
-    outputParameters.suggestedLatency = suggestedLatency;
-    outputParameters.hostApiSpecificStreamInfo = 0;
-    outputParameters.sampleFormat = SAMPLE_FORMAT;
-
-
-    PaError error = Pa_OpenStream(&SHAKE_Stream, 0, &outputParameters,
-            SAMPLE_RATE, paFramesPerBufferUnspecified, paNoFlag,
-            shakeCallback, NULL);
-
-    if (error) {
-
-        printf("error opening output, error code = %i\n", error);
-        Pa_Terminate();
-        return 1;
-
-    }
-
-    Pa_StartStream(SHAKE_Stream);
-
-    return 0;
-
-}
-
-int shakeLoad(char* fileName)
-{
-
-    WAVE_INFO info;
-    void* in;
-    in = (void *) waveLoad(fileName, &info);
-
-    if (!in) {
-
-        printf("error opening file\n");
-        exit(1);
-
-    }
-
-    if (info.wBitsPerSample != SAMPLE_BITS ||
-        info.nSamplesPerSec != 44100 ||
-        info.nChannels != 2)
-    {
-        printf("Error it is not a 2 channels 16 bits samples at 44100Hs.\n");
-        exit(1);
-    }
-
-    Sound s;
-    s.data = (int16_t*) in;
-    s.size = info.dataSize / 2;
-
-
-    int soundId = SHAKE_LoadedSounds;
-    SHAKE_Sounds[soundId] = s;
-    SHAKE_LoadedSounds += 1;
-
-    return soundId;
-
-}
-
-
-// main thread
-void shakePlay(int soundId) {
-
-    shakeLock(); // LOCK BUFFER
-
-    int dataPos     = 0;
-    int buffPos     = SHAKE_BufferPosition; // the next buffer part to read
-
-    int mustRead    = SHAKE_Sounds[soundId].size;
-    int samplesLeft = BUFFER_SIZE - SHAKE_BufferPosition;
-
-    if (samplesLeft < mustRead) {
-
-        shakeMixAverage(
-                SHAKE_Sounds[soundId].data, dataPos,
-                SHAKE_Buffer, buffPos, samplesLeft);
-
-        mustRead = mustRead - samplesLeft;
-        dataPos  = samplesLeft;
-        buffPos  = 0;
-
-    }
-
-    shakeMixAverage(
-            SHAKE_Sounds[soundId].data, dataPos,
-            SHAKE_Buffer,               buffPos, mustRead);
-
-    shakeUnlock(); // UNLOCK BUFFER
-
-}
-
-
-// portaudio thread
+// The portaudio thread
 int shakeCallback(
         const void                      *input,
         void                            *output,
@@ -213,10 +97,85 @@ int shakeCallback(
 }
 
 
-/*
- * @brief mix sounds
- * Very basic hard clipping.
- */
+// the main thread
+int shakeInit(float suggestedLatency)
+{
+
+    shakeInitLock();
+
+    SHAKE_Buffer = calloc(BUFFER_SIZE, sizeof(int16_t));
+    SHAKE_BufferPosition = 0;
+
+    SHAKE_Sounds = malloc(10 * sizeof(Sound));
+    SHAKE_LoadedSounds = 0;
+
+
+    Pa_Initialize();
+
+
+    PaStreamParameters outputParameters;
+    outputParameters.device = Pa_GetDefaultOutputDevice();
+    outputParameters.channelCount = 2;
+    outputParameters.suggestedLatency = suggestedLatency;
+    outputParameters.hostApiSpecificStreamInfo = 0;
+    outputParameters.sampleFormat = SAMPLE_FORMAT;
+
+
+    PaError error = Pa_OpenStream(&SHAKE_Stream, 0, &outputParameters,
+            SAMPLE_RATE, paFramesPerBufferUnspecified, paNoFlag,
+            shakeCallback, NULL);
+
+    if (error) {
+
+        printf("error opening output, error code = %i\n", error);
+        Pa_Terminate();
+        return 1;
+
+    }
+
+    Pa_StartStream(SHAKE_Stream);
+
+    return 0;
+
+}
+
+
+int shakeLoad(char* fileName)
+{
+
+    WAVE_INFO info;
+    void* in;
+    in = (void *) waveLoad(fileName, &info);
+
+    if (!in) {
+
+        printf("error opening file\n");
+        exit(1);
+
+    }
+
+    if (info.wBitsPerSample != SAMPLE_BITS ||
+        info.nSamplesPerSec != 44100 ||
+        info.nChannels != 2)
+    {
+        printf("Error it is not a 2 channels 16 bits samples at 44100Hs.\n");
+        exit(1);
+    }
+
+    Sound s;
+    s.data = (int16_t*) in;
+    s.size = info.dataSize / 2;
+
+
+    int soundId = SHAKE_LoadedSounds;
+    SHAKE_Sounds[soundId] = s;
+    SHAKE_LoadedSounds += 1;
+
+    return soundId;
+
+}
+
+
 void shakeMixAverage(
         int16_t*    sample, 
         int         sampleIndex,
@@ -225,6 +184,7 @@ void shakeMixAverage(
         int         size)
 {
 
+    // basic hard clipping
     int i;
     for (i = 0; i < size; i++)
     {
@@ -251,6 +211,36 @@ void shakeMixAverage(
 }
 
 
+void shakePlay(int soundId) {
+
+    shakeLock(); // LOCK BUFFER
+
+    int dataPos     = 0;
+    int buffPos     = SHAKE_BufferPosition; // the next buffer part to read
+
+    int mustRead    = SHAKE_Sounds[soundId].size;
+    int samplesLeft = BUFFER_SIZE - SHAKE_BufferPosition;
+
+    if (samplesLeft < mustRead) {
+
+        shakeMixAverage(
+                SHAKE_Sounds[soundId].data, dataPos,
+                SHAKE_Buffer, buffPos, samplesLeft);
+
+        mustRead = mustRead - samplesLeft;
+        dataPos  = samplesLeft;
+        buffPos  = 0;
+
+    }
+
+    shakeMixAverage(
+            SHAKE_Sounds[soundId].data, dataPos,
+            SHAKE_Buffer,               buffPos, mustRead);
+
+    shakeUnlock(); // UNLOCK BUFFER
+
+}
+
 
 void shakeTerminate()
 {
@@ -266,5 +256,4 @@ void shakeTerminate()
     free(SHAKE_Buffer);
 
 }
-
 

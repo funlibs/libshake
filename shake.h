@@ -14,12 +14,35 @@
  * under the License.
  */
 
+/**
+ * @file shake.h
+ */
 #ifndef SHAKE_H
 #define SHAKE_H
 
+/**
+ * @brief Initialize shake
+ * @param suggestedLatency PortAudio stream suggested latency
+ * @return 0 if successfull
+ */
 int  shakeInit(float suggestedLatency);
+
+/**
+ * @brief Load wave file
+ * @param fileName The wave file
+ * @return The sound identifier
+ */
 int  shakeLoad(char* fileName);
+
+/**
+ * @brief Play a sound
+ * @param soundId The sound identifier
+ */
 void shakePlay(int soundId);
+
+/**
+ * @brief Terminate shake
+ */
 void shakeTerminate();
 
 #endif
