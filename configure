@@ -14,10 +14,6 @@ clean_all:
 	make -C build $@
 ' > Makefile
 
-# update submodule
-git submodule init
-git submodule update
-
 # cleanup build dir if exist
 rm -rf build
 

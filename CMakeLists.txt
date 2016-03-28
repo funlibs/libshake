@@ -1,80 +1,16 @@
 cmake_minimum_required (VERSION 2.6)
 project (SHAKE)
 
-
-# build libwave
-add_subdirectory(deps/libwave)
-
-
-# build PortAudio
-set (EXTRA_LIBS "")
-set (PA_INCLUDE_DIR "")
-set (PA_LIBRARY_DIR "")
-
-if (CMAKE_SYSTEM MATCHES "Windows")
-
-    add_definitions(-DPA_WDMKS_NO_KSGUID_LIB)
-    add_subdirectory(deps/portaudio)
-    set(PA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps/portaudio/include/)
-
-else()
-    # we are on linux/unix/apple use configure script
-
-    if (APPLE)
-
-        find_library(CORE_AUDIO_LIBRARY CoreAudio)
-        find_library(AUDIO_TOOLBOX_LIBRARY AudioToolbox)
-        find_library(AUDIO_UNIT_LIBRARY AudioUnit)
-        find_library(CARBON_LIBRARY Carbon)
-        set(EXTRA_LIBS
-            ${CORE_AUDIO_LIBRARY}
-            ${AUDIO_TOOLBOX_LIBRARY}
-            ${AUDIO_UNIT_LIBRARY}
-            ${CARBON_LIBRARY})
-
-    else()
-
-        find_library(ALSA REQUIRED)
-        set(EXTRA_LIBS -lrt -lm -lasound -ljack -pthread)
-
-    endif()
-
-    include (ExternalProject)
-    ExternalProject_Add(ext_portaudio
-        SOURCE_DIR          ${CMAKE_CURRENT_SOURCE_DIR}/deps/portaudio
-        PREFIX              ${CMAKE_BINARY_DIR}/portaudio
-        CONFIGURE_COMMAND   <SOURCE_DIR>/configure
-        BUILD_COMMAND       make
-        INSTALL_COMMAND     echo Skipping install step for portaudio)
-    ExternalProject_Get_Property(ext_portaudio BINARY_DIR)
-    ExternalProject_Get_Property(ext_portaudio SOURCE_DIR)
-    set(PA_LIBRARY_DIR "${BINARY_DIR}/lib/.libs")
-    set(PA_INCLUDE_DIR "${SOURCE_DIR}/include")
-    add_library (portaudio STATIC IMPORTED)
-    set_property(
-        TARGET portaudio
-        PROPERTY IMPORTED_LOCATION "${PA_LIBRARY_DIR}/libportaudio.a")
-
-endif(CMAKE_SYSTEM MATCHES "Windows")
+#==============================================================================
+# SHAKE library
+#==============================================================================
+add_library (shake STATIC shake.c shake.h)
+include_directories (.)
 
 
-
-# build SHAKE
-include_directories (
-    . 
-    ${PA_INCLUDE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/deps/libwave)
-add_library (shake shake.c shake.h)
-if (CMAKE_SYSTEM MATCHES "Windows")
-    target_link_libraries(shake portaudio_static wave ${EXTRA_LIBS})
-    add_dependencies (shake portaudio_static wave)
-else()
-    target_link_libraries(shake portaudio wave ${EXTRA_LIBS})
-    add_dependencies (shake portaudio ext_portaudio wave)
-endif()
-
-
-# tests
+#==============================================================================
+# EXAMPLE
+#==============================================================================
 add_executable (shake_example
     shake_example.c
     shake.c
@@ -83,7 +19,9 @@ target_link_libraries(shake_example shake)
 add_dependencies(shake_example shake)
 
 
-# doc
+#==============================================================================
+# DOC
+#==============================================================================
 find_package (Doxygen)
 
 if (DOXYGEN_FOUND)
@@ -98,3 +36,101 @@ if (DOXYGEN_FOUND)
     COMMENT "Generating API documentation with Doxygen" VERBATIM)
 
 endif (DOXYGEN_FOUND)
+cmake_minimum_required (VERSION 2.6)
+project (TESTEXT)
+
+
+
+#==============================================================================
+# EXTERN
+#==============================================================================
+include (ExternalProject)
+set_directory_properties(PROPERTIES EP_BASE ${CMAKE_BINARY_DIR})
+
+if(WIN32)
+
+    set(PA_GENERATOR ${CMAKE_GENERATOR})
+    set(PA_CONFIGURE "")
+    set(PA_BUILD     "")
+
+elseif(UNIX)
+
+    set(PA_GENERATOR "")
+    set(PA_CONFIGURE <SOURCE_DIR>/configure)
+    set(PA_BUILD     make)
+
+    if(APPLE)
+        find_library(CORE_AUDIO_LIBRARY CoreAudio)
+        find_library(AUDIO_TOOLBOX_LIBRARY AudioToolbox)
+        find_library(AUDIO_UNIT_LIBRARY AudioUnit)
+        find_library(CARBON_LIBRARY Carbon)
+    else() # LINUX/UNIX
+        find_library(ALSA REQUIRED)
+    endif(APPLE)
+
+endif(WIN32)
+
+
+#
+# LIBWAVE
+#
+ExternalProject_Add(ext_wave
+    GIT_REPOSITORY  https://github.com/ssbx/libwave.git
+    GIT_TAG         master
+    CMAKE_GENERATOR ${CMAKE_GENERATOR}
+    INSTALL_COMMAND ""
+    LOG_DOWNLOAD    0
+    LOG_CONFIGURE   0
+    LOG_BUILD       0)
+add_dependencies(shake ext_wave)
+include_directories(${CMAKE_BINARY_DIR}/Source/ext_wave)
+set(WAVE_LIB ${CMAKE_STATIC_LIBRARY_PREFIX}wave${CMAKE_STATIC_LIBRARY_SUFFIX})
+target_link_libraries(shake
+    ${CMAKE_BINARY_DIR}/Build/ext_wave/${WAVE_LIB})
+
+#
+# PORTAUDIO
+#
+ExternalProject_Add(ext_portaudio
+    GIT_REPOSITORY  https://github.com/ssbx/portaudio.git
+    GIT_TAG         master
+    CMAKE_GENERATOR ${CMAKE_GENERATOR}
+    CONFIGURE_COMMAND ${PA_CONFIGURE}
+    BUILD_COMMAND   ${PA_BUILD}
+    INSTALL_COMMAND ""
+    LOG_DOWNLOAD    0
+    LOG_CONFIGURE   0
+    LOG_BUILD       0)
+add_dependencies(shake ext_portaudio)
+include_directories(${CMAKE_BINARY_DIR}/Source/ext_portaudio/include)
+set(PA_LIB ${CMAKE_STATIC_LIBRARY_PREFIX}portaudio${CMAKE_STATIC_LIBRARY_SUFFIX})
+target_link_libraries(shake
+    ${CMAKE_BINARY_DIR}/Build/ext_portaudio/lib/.libs/${PA_LIB})
+
+
+#==============================================================================
+# EXTRA LIBS
+#==============================================================================
+if (UNIX)
+
+    if(APPLE)
+
+        target_link_libraries(shake
+            ${CORE_AUDIO_LIBRARY}
+            ${AUDIO_TOOLBOX_LIBRARY}
+            ${AUDIO_UNIT_LIBRARY}
+            ${CARBON_LIBRARY})
+
+    else() # LINUX/UNIX
+
+        target_link_libraries(shake
+            -lrt 
+            -lm 
+            -lasound 
+            -ljack 
+            -pthread)
+
+    endif(APPLE)
+
+endif(UNIX)
+
