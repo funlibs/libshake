@@ -45,7 +45,9 @@ else()
         PREFIX              ${CMAKE_BINARY_DIR}/portaudio
         CONFIGURE_COMMAND   <SOURCE_DIR>/configure
         BUILD_COMMAND       make
-        INSTALL_COMMAND     echo Skipping install step for portaudio)
+        INSTALL_COMMAND     echo Skipping install step for portaudio
+        LOG_CONFIGURE       1
+        LOG_BUILD           1)
     ExternalProject_Get_Property(ext_portaudio BINARY_DIR)
     ExternalProject_Get_Property(ext_portaudio SOURCE_DIR)
     set(PA_LIBRARY_DIR "${BINARY_DIR}/lib/.libs")
