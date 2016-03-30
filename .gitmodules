@@ -1,6 +1,7 @@
+
 [submodule "deps/portaudio"]
 	path = deps/portaudio
-	url = https://github.com/ssbx/portaudio.git
+	url = https://github.com/libgame/portaudio.git
 [submodule "deps/libwave"]
 	path = deps/libwave
-	url = https://github.com/ssbx/libwave.git
+	url = https://github.com/libgame/libwave.git
