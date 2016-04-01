@@ -3,7 +3,7 @@ LibShake
 [![Build Status](https://travis-ci.org/libgame/libshake.svg?branch=master)](https://travis-ci.org/libgame/libshake)
 [![Build status](https://ci.appveyor.com/api/projects/status/ubp0j5189i320sm8/branch/master?svg=true)](https://ci.appveyor.com/project/ssbx/libshake-91o89/branch/master)
 
-Very limited mixer using PortAudio and [LibWave](https://github.com/ssbx/libwave). Will only mix wav files with 16 bits/sample at 44100hz for 2 channels.
+Limited mixer using PortAudio and [LibWave](https://github.com/ssbx/libwave). Will only mix wav files with 16 bits/sample at 44100hz for 2 channels.
 
 Build
 -----
