@@ -34,7 +34,6 @@
 #define BUFFER_SIZE     1000000
 #define SAMPLE_BITS     16
 #define SAMPLE_FORMAT   paInt16
-#define SAMPLE_TYPE     int16_t
 #define SAMPLE_RATE     44100
 
 
@@ -205,12 +204,12 @@ void shakeMixAverage(
         // clip
         int32_t v = (int32_t) val_a + (int32_t) val_b;
 
-        if (v > 32767)
-            result = 32767;
-        else if (v < -32767)
-            result = -32767;
+        if (v > INT16_MAX)
+            result = INT16_MAX;
+        else if (v < INT16_MIN)
+            result = INT16_MIN;
         else
-            result = (SAMPLE_TYPE) v;
+            result = (int16_t) v;
 
 
         output[outputIndex + i] = result;

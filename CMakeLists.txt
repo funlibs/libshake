@@ -2,10 +2,6 @@ cmake_minimum_required (VERSION 2.6)
 project (SHAKE)
 
 
-# build libwave
-add_subdirectory(deps/libwave)
-
-
 # build PortAudio
 set (EXTRA_LIBS "")
 set (PA_INCLUDE_DIR "")
@@ -68,11 +64,11 @@ include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}/deps/libwave)
 add_library (shake shake.c shake.h)
 if (CMAKE_SYSTEM MATCHES "Windows")
-    target_link_libraries(shake portaudio_static wave ${EXTRA_LIBS})
-    add_dependencies (shake portaudio_static wave)
+    target_link_libraries(shake portaudio_static ${EXTRA_LIBS})
+    add_dependencies (shake portaudio_static)
 else()
-    target_link_libraries(shake portaudio wave ${EXTRA_LIBS})
-    add_dependencies (shake portaudio ext_portaudio wave)
+    target_link_libraries(shake portaudio ${EXTRA_LIBS})
+    add_dependencies (shake portaudio ext_portaudio)
 endif()
 
 
