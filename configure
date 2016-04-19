@@ -16,7 +16,7 @@ clean_all:
 
 # update submodule
 git submodule init
-git submodule update
+git submodule update --recursive --remote
 
 # cleanup build dir if exist
 rm -rf build
