@@ -12,7 +12,7 @@ before_install:
 
 compiler:
     - gcc
-    - g++
+   #- g++
     - clang
 
 script: 
