@@ -80,7 +80,6 @@ add_executable (shake_example
 target_link_libraries(shake_example shake)
 add_dependencies(shake_example shake)
 
-
 # doc
 find_package (Doxygen)
 
