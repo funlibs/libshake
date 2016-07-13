@@ -12,7 +12,7 @@
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- 
+
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -35,9 +35,44 @@
 #define SAMPLE_BITS     16
 #define SAMPLE_FORMAT   paInt16
 #define SAMPLE_RATE     44100
+#define NUMBER_OF_CHANNELS 2
+#define MAX_MIX_SOUNDS  40
 
 
-typedef struct sound_t {int16_t* data; int size;} Sound;
+/**
+ * @brief Play mode
+ * Actually only:
+ * - normal, at the end of a Sound stop,
+ * - loop, at the end of a Sound play it again
+ */
+typedef enum {
+    NORMAL_MODE,
+    LOOP_MODE,
+    FADE_IN,
+    FADE_OUT
+} PlayMode;
+
+/**
+ * @brief represent a sound to be played
+ */
+typedef struct {
+    int16_t*    data;                   // the data
+    int         size;                   // where to stop
+    int         current_position;       // current read position
+    float       volume;                 // sound volume between 0.0f and 1.0f
+    PlayMode    play_mode;              // loop at end or remove Sound from Mix
+} Sound;
+
+/**
+ * @brief represent all sounds playing at the same time.
+ */
+typedef struct {
+    Sound* sounds[MAX_MIX_SOUNDS];    // sounds currently playing
+    int    size;
+    float  volume;                    // mix volume between 0.0f and 1.0f
+    // ???    queu;
+} Mix;
+
 int       SHAKE_LoadedSounds;
 Sound*    SHAKE_Sounds;
 PaStream* SHAKE_Stream;
@@ -45,6 +80,8 @@ int16_t*  SHAKE_Buffer;
 int       SHAKE_BufferNextReadPosition;
 
 
+Mix SHAKE_Playing;
+int16_t*  tmp_buffer;
 
 // portable mutex
 #ifdef WIN32
@@ -58,12 +95,81 @@ void shakeUnlock() { ReleaseMutex(SHAKE_BufferMutex); }
 #else
 
 #include <pthread.h>
-static pthread_mutex_t  SHAKE_BufferMutex = PTHREAD_MUTEX_INITIALIZER; 
+static pthread_mutex_t  SHAKE_BufferMutex = PTHREAD_MUTEX_INITIALIZER;
 void shakeInitLock() {}
 void shakeLock() { pthread_mutex_lock(&SHAKE_BufferMutex); }
 void shakeUnlock() { pthread_mutex_unlock(&SHAKE_BufferMutex); }
 
 #endif // WIN32
+
+void shakeMix(
+    int mustRead,
+    void *output)
+{
+
+    memset(tmp_buffer, 0, sizeof(int16_t) * BUFFER_SIZE);
+
+    int i;
+    shakeLock();  // LOCK Mix (SHAKE_Playing) struct
+    /*
+     * For each Sounds contained in Mix.sounds
+     */
+    for (i = 0; i < SHAKE_Playing.size; i++)
+    {
+        Sound *sound = SHAKE_Playing.sounds[i];
+        int position = sound->current_position;
+        int size = sound->size;
+        int read_left = size - position;
+        int will_read = mustRead;
+        if ((size - position) < mustRead)
+            will_read = read_left;
+
+        int destination = position + will_read;
+        int buffer_pos = 0;
+        int j;
+
+        /*
+         * Mix add and cut if needed
+         */
+        for (j = position; j < destination; j++)
+        {
+            int16_t mix_frame = tmp_buffer[buffer_pos];
+            int16_t sound_frame = sound->data[j];
+            int32_t joined_frame = (int32_t) mix_frame + (int32_t) sound_frame;
+            int16_t mixed_frame;
+            if (joined_frame > INT16_MAX)
+                mixed_frame = INT16_MAX;
+            else if (joined_frame < INT16_MIN)
+                mixed_frame = INT16_MIN;
+            else
+                mixed_frame = (int16_t) joined_frame;
+
+            tmp_buffer[buffer_pos] = mixed_frame;
+        }
+
+        sound->current_position = destination;
+    }
+    shakeUnlock();
+
+    memcpy(output, &tmp_buffer[0], mustRead);
+
+}
+
+// The portaudio thread
+int shakeCallback2(
+        const void                      *input,
+        void                            *output,
+        unsigned long                    frameCount,
+        const PaStreamCallbackTimeInfo*  paTimeInfo,
+        PaStreamCallbackFlags            statusFlags,
+        void                            *noUserData)
+{
+
+    int mustRead = NUMBER_OF_CHANNELS * frameCount;
+    shakeMix(mustRead, output);
+    return paContinue;
+
+}
 
 
 // The portaudio thread
@@ -76,7 +182,7 @@ int shakeCallback(
         void                            *noUserData)
 {
 
-    int mustRead = 2 * frameCount; // nchannels * framecount
+    int mustRead = NUMBER_OF_CHANNELS * frameCount;
 
 
     shakeLock();  // LOCK BUFFER
@@ -185,7 +291,7 @@ int shakeLoad(char* fileName)
 
 
 void shakeMixAverage(
-        int16_t*    sample, 
+        int16_t*    sample,
         int         sampleIndex,
         int16_t*    output,
         int         outputIndex,
