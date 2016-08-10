@@ -79,7 +79,6 @@ PaStream* SHAKE_Stream;
 int16_t*  SHAKE_Buffer;
 int       SHAKE_BufferNextReadPosition;
 
-
 Mix SHAKE_Playing;
 int16_t*  tmp_buffer;
 
@@ -102,11 +101,11 @@ void shakeUnlock() { pthread_mutex_unlock(&SHAKE_BufferMutex); }
 
 #endif // WIN32
 
-void shakeMix(
+void
+shakeMix(
     int mustRead,
     void *output)
 {
-
     memset(tmp_buffer, 0, sizeof(int16_t) * BUFFER_SIZE);
 
     int i;
@@ -114,8 +113,7 @@ void shakeMix(
     /*
      * For each Sounds contained in Mix.sounds
      */
-    for (i = 0; i < SHAKE_Playing.size; i++)
-    {
+    for (i = 0; i < SHAKE_Playing.size; i++) {
         Sound *sound = SHAKE_Playing.sounds[i];
         int position = sound->current_position;
         int size = sound->size;
@@ -131,8 +129,7 @@ void shakeMix(
         /*
          * Mix add and cut if needed
          */
-        for (j = position; j < destination; j++)
-        {
+        for (j = position; j < destination; j++) {
             int16_t mix_frame = tmp_buffer[buffer_pos];
             int16_t sound_frame = sound->data[j];
             int32_t joined_frame = (int32_t) mix_frame + (int32_t) sound_frame;
@@ -152,11 +149,11 @@ void shakeMix(
     shakeUnlock();
 
     memcpy(output, &tmp_buffer[0], mustRead);
-
 }
 
 // The portaudio thread
-int shakeCallback2(
+int
+shakeCallback2(
         const void                      *input,
         void                            *output,
         unsigned long                    frameCount,
@@ -164,16 +161,14 @@ int shakeCallback2(
         PaStreamCallbackFlags            statusFlags,
         void                            *noUserData)
 {
-
     int mustRead = NUMBER_OF_CHANNELS * frameCount;
     shakeMix(mustRead, output);
     return paContinue;
-
 }
 
-
 // The portaudio thread
-int shakeCallback(
+int
+shakeCallback(
         const void                      *input,
         void                            *output,
         unsigned long                    frameCount,
@@ -181,9 +176,7 @@ int shakeCallback(
         PaStreamCallbackFlags            statusFlags,
         void                            *noUserData)
 {
-
     int mustRead = NUMBER_OF_CHANNELS * frameCount;
-
 
     shakeLock();  // LOCK BUFFER
 
@@ -207,14 +200,12 @@ int shakeCallback(
     shakeUnlock(); // UNLOCK SHAKE_Buffer
 
     return paContinue;
-
 }
 
-
 // the main thread
-int shakeInit(float suggestedLatency)
+int
+shakeInit(float suggestedLatency)
 {
-
     shakeInitLock();
 
     SHAKE_Buffer = calloc(BUFFER_SIZE, sizeof(int16_t));
@@ -240,32 +231,27 @@ int shakeInit(float suggestedLatency)
             shakeCallback, NULL);
 
     if (error) {
-
         printf("error opening output, error code = %i\n", error);
         Pa_Terminate();
         return 1;
-
     }
 
     Pa_StartStream(SHAKE_Stream);
 
     return 0;
-
 }
 
 
-int shakeLoad(char* fileName)
+int
+shakeLoad(char* fileName)
 {
-
     WAVE_INFO info;
     void* in;
     in = (void *) waveLoad(fileName, &info);
 
     if (!in) {
-
         printf("error opening file\n");
         exit(1);
-
     }
 
     if (info.wBitsPerSample != SAMPLE_BITS ||
@@ -286,23 +272,19 @@ int shakeLoad(char* fileName)
     SHAKE_LoadedSounds += 1;
 
     return soundId;
-
 }
 
-
-void shakeMixAverage(
+void
+shakeMixAverage(
         int16_t*    sample,
         int         sampleIndex,
         int16_t*    output,
         int         outputIndex,
         int         size)
 {
-
     // basic hard clipping
     int i;
-    for (i = 0; i < size; i++)
-    {
-
+    for (i = 0; i < size; i++) {
         int16_t val_a, val_b, result;
         val_a = sample[sampleIndex + i];
         val_b = output[outputIndex + i];
@@ -317,16 +299,13 @@ void shakeMixAverage(
         else
             result = (int16_t) v;
 
-
         output[outputIndex + i] = result;
-
     }
-
 }
 
-
-void shakePlay(int soundId) {
-
+void
+shakePlay(int soundId)
+{
     shakeLock(); // LOCK BUFFER
 
     int dataPos     = 0;
@@ -336,7 +315,6 @@ void shakePlay(int soundId) {
     int samplesLeft = BUFFER_SIZE - buffPos;
 
     if (samplesLeft < mustRead) {
-
         shakeMixAverage(
                 SHAKE_Sounds[soundId].data, dataPos,
                 SHAKE_Buffer, buffPos, samplesLeft);
@@ -344,7 +322,6 @@ void shakePlay(int soundId) {
         mustRead = mustRead - samplesLeft;
         dataPos  = samplesLeft;
         buffPos  = 0;
-
     }
 
     shakeMixAverage(
@@ -352,13 +329,11 @@ void shakePlay(int soundId) {
             SHAKE_Buffer,               buffPos, mustRead);
 
     shakeUnlock(); // UNLOCK BUFFER
-
 }
 
-
-void shakeTerminate()
+void
+shakeTerminate()
 {
-
     Pa_StopStream(SHAKE_Stream);
     Pa_Terminate();
 
@@ -368,6 +343,5 @@ void shakeTerminate()
 
     free(SHAKE_Sounds);
     free(SHAKE_Buffer);
-
 }
 

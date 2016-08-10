@@ -12,7 +12,7 @@
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- 
+
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -32,32 +32,34 @@
 extern "C" {
 #endif // __cplusplus
 
-
 /**
  * @brief Initialize shake
  * @param suggestedLatency PortAudio stream suggested latency
  * @return 0 if successfull
  */
-int  shakeInit(float suggestedLatency);
+int
+shakeInit(float suggestedLatency);
 
 /**
  * @brief Load wave file
  * @param fileName The wave file
  * @return The sound identifier
  */
-int  shakeLoad(char* fileName);
+int
+shakeLoad(char* fileName);
 
 /**
  * @brief Play a sound
  * @param soundId The sound identifier
  */
-void shakePlay(int soundId);
+void
+shakePlay(int soundId);
 
 /**
  * @brief Terminate shake
  */
-void shakeTerminate();
-
+void
+shakeTerminate();
 
 #ifdef __cplusplus
 }
